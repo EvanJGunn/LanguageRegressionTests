@@ -1,0 +1,27 @@
+# CREATE TABLE word
+#(
+#  wlanguage VARCHAR(20),
+#  wid NUMERIC(8,0),
+#  meaning VARCHAR(40),
+#  romanization VARCHAR(45),
+#  wtype VARCHAR(20),
+#  PRIMARY KEY(wid,wlanguage)
+#);
+
+#CREATE TABLE symbols
+#(
+#  wid NUMERIC(8,0),
+#  main VARCHAR(45),
+#  ancillary VARCHAR(45),
+#  PRIMARY KEY(wid, main),
+#  FOREIGN KEY(wid) REFERENCES word(wid)
+#);
+
+#CREATE TABLE wordsource
+#(
+#  wid NUMERIC(8,0),
+#  sid VARCHAR(20),
+#  tname VARCHAR(45),
+#  PRIMARY KEY(wid,sid),
+#  FOREIGN KEY(wid) REFERENCES word(wid)
+#);
