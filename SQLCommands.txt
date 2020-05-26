@@ -1,4 +1,4 @@
-# CREATE TABLE word
+#CREATE TABLE word
 #(
 #  wlanguage VARCHAR(20),
 #  wid NUMERIC(8,0),
