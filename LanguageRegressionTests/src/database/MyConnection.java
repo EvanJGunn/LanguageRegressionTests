@@ -74,11 +74,11 @@ public class MyConnection {
      * @return Return the number of rows in a table, or if an error occurs, return -1.
      */
     private int getRowCount(String tableName) {
-        ResultSet countQuery = runQuery("SELECT COUNT(*) FROM " + tableName + ";");
+        ResultSet result = runQuery("SELECT COUNT(*) FROM " + tableName + ";");
         int count = 0;
         try {
-            countQuery.next();
-            count = countQuery.getInt(1);
+            result.next();
+            count = result.getInt(1);
         } catch (SQLException e) {
             System.out.println(e);
             count = -1;
@@ -112,7 +112,7 @@ public class MyConnection {
         runQuery("START TRANSACTION;");
         
         // Generate the proper SQL query for insertion into the word table.
-        String wordUpdate = "INSERT INTO " + WORD_TABLE + " (wlanguage, wid, meaning, romanization, wtype)"
+        String wordUpdate = "INSERT INTO " + WORD_TABLE + " (wlanguage, wid, meaning, romanization, wtype) "
                          + "VALUES ('" + language + "','" + newWordID + "','" + meaning + "','" + word + "','" + wtype + "');";
         int success = runUpdate(wordUpdate);
         
@@ -128,7 +128,7 @@ public class MyConnection {
         // Handle symbols update if necessary.
         if (main != null) {
             if(ancillary == null) ancillary = "NULL";
-            String symbolUpdate = "INSERT INTO " + SYMBOL_TABLE + " (wid, main, ancillary)"
+            String symbolUpdate = "INSERT INTO " + SYMBOL_TABLE + " (wid, main, ancillary) "
                                 + "VALUES ('" + newWordID + "','" + main + "','" + ancillary +"');";
             success = runUpdate(symbolUpdate);
             
@@ -142,7 +142,7 @@ public class MyConnection {
         
         // Handle source update if necessary.
         if (sourceName != null) {
-            String sourceUpdate = "INSERT INTO " + SOURCE_TABLE + " (wid, tname)"
+            String sourceUpdate = "INSERT INTO " + SOURCE_TABLE + " (wid, tname) "
                                 + "VALUES ('" + newWordID + "','" + sourceName + "');";
             success = runUpdate(sourceUpdate);
             
@@ -156,6 +156,55 @@ public class MyConnection {
         
         runQuery("COMMIT;");
         return true;
+    }
+    
+    /**
+     * List all the words entered for a language, along with any data in the symbols and wordsource tables.
+     * This command is currently for debug, obviously listing 
+     * @param language Lists words based on language
+     */
+    public void ListLanguageWords(String language) {
+        String newQuery = "SELECT * "
+                        + "FROM word W "
+                        + "WHERE W.wlanguage = '" + language + "';";
+        ResultSet result = runQuery(newQuery);
+        if (result == null) {
+            System.out.println("Failed to get query result.");
+            return;
+        }
+        System.out.println("Listing wid, romanization, and language, all other fields will be null:");
+        try {
+            while (result.next()) {
+                LocalWord newWord = new LocalWord(result.getString(4),result.getString(1));
+                newWord.setWID(result.getInt(2));
+                // TODO possibly add a pull here to complete word data
+                System.out.println(newWord.toString());
+            }
+        } catch (SQLException e) {
+            System.out.println(e);
+        }
+    }
+    
+    /**
+     * Check if a word exists in the database.
+     * @param word The word for which we are checking.
+     * @param language The language of the word.
+     * @return If the word exists, return its wid. If the word doesn't exist, return -1. On error, return -2.
+     */
+    public int checkForWord(String word, String language) {
+        String newQuery = "SELECT * "
+                        + "FROM word W "
+                        + "WHERE W.wlanguage = '" + language + "' AND W.romanization = '" + word + "';";
+        try {
+            ResultSet result = runQuery(newQuery);
+            if (result.next()) {
+                return result.getInt(2);
+            }
+            return -1;
+        } catch (SQLException e) {
+            System.out.println(e);
+            return -2;
+        }
     }
     
     /**

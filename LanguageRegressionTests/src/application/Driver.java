@@ -2,6 +2,7 @@ package application;
 
 import java.util.Scanner;
 
+import database.LocalWord;
 import database.MyConnection;
 
 /**
@@ -94,6 +95,8 @@ public class Driver {
                 + "Please select from the list of commands, and type below:\n"
                 + "quit: Exit the program.\n"
                 + "insert: Begin a word insertion.\n"
+                + "listall: List all the words by a language.\n"
+                + "checkfor: Check for a vocabulary word's existence in the database.\n"
                 + "********************\n");
     }
     
@@ -163,6 +166,30 @@ public class Driver {
                     System.out.println("Word successfully inserted into table.");
                 } else {
                     System.out.println("Failed to insert word, all changes rolled back.");
+                }
+                break;
+            case "listall":
+                System.out.println("Please enter the language you would like to list:");
+                String listLang = scanner.nextLine();
+                MyConnection.myConnection.ListLanguageWords(listLang);
+                break;
+            case "checkfor":
+                System.out.println("Please enter the romanization of the word you would like to check for:");
+                String checkWord = scanner.nextLine();
+                System.out.println("Please enter the language of the word:");
+                String wordLang = scanner.nextLine();
+                int checkVal = MyConnection.myConnection.checkForWord(checkWord, wordLang);
+                if (checkVal == -1) {
+                    System.out.println("Word does not exist in database.");
+                } else if (checkVal == -2) {
+                    System.out.println("Error occurred, unable to check for word.");
+                } else {
+                    LocalWord myWord = new LocalWord(checkWord, wordLang);
+                    myWord.setWID(checkVal);
+                    // TODO Once pull is completed, pull word data here before printing.
+                    //myWord.pull();
+                    System.out.println("Found word:");
+                    System.out.println(myWord.toString());
                 }
                 break;
             default:
