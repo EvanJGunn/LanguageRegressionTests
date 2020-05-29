@@ -8,6 +8,9 @@ CREATE TABLE word
   PRIMARY KEY(wid,wlanguage)
 );
 
+ALTER TABLE word
+ADD UNIQUE (meaning, romanization);
+
 CREATE TABLE symbols
 (
   wid NUMERIC(8,0),
