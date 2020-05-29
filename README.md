@@ -3,7 +3,7 @@
 Oracle's Connector/j version 8.0.20 is required in the buildpath of the project in order for compilation!
 It can be downloaded here: https://dev.mysql.com/downloads/connector/j/
 *********************
-This project is meant to help learners of spoken and written languages by generating vocabulary tests based on learned vocabulary. In this manner it is supposed to prevent language "regression", similarly to how software regression tests are written to detect and prevent regression in software functionality.
+This project is meant to help learners of spoken and written languages by generating vocabulary tests based on learned vocabulary. In this manner it is supposed to prevent language "regression", similar to how software regression tests are written to detect and prevent regression in software functionality.
 This project has two parts, a MySQL database and the client that commits data to the database, as well as generating language tests for the user, based on that data.
 
 The project was created with support for the Japanese language in mind, however the project is meant to be able to cover other languages, and some inbuilt support for other languages may be present. However there is no guarantee that the characters of a foreign language will be supported, due to MySQL's strange handling of UTF-8. Read more here on this helpful webpage: https://medium.com/@adamhooper/in-mysql-never-use-utf8-use-utf8mb4-11761243e434 (Oracle appears to be intent on fixing this problem, so this info may be outdated)
