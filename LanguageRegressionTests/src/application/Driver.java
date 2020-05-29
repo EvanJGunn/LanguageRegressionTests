@@ -55,7 +55,7 @@ public class Driver {
         System.out.println("Please enter your password:");
         String password = scanner.nextLine();
         
-        boolean connected = MyConnection.InitializeConnection(endpoint, port, schema, user, password);
+        boolean connected = MyConnection.initializeConnection(endpoint, port, schema, user, password);
         
         // If we are unable to connect, check if the user would like to retry connection.
         if (!connected) {
@@ -171,7 +171,7 @@ public class Driver {
             case "listall":
                 System.out.println("Please enter the language you would like to list:");
                 String listLang = scanner.nextLine();
-                MyConnection.myConnection.ListLanguageWords(listLang);
+                MyConnection.myConnection.listLanguageWords(listLang);
                 break;
             case "checkfor":
                 System.out.println("Please enter the romanization of the word you would like to check for:");
@@ -203,7 +203,7 @@ public class Driver {
      */
     private static void cleanUp() {
         // End the connection to the database.
-        MyConnection.CloseConnection();
+        MyConnection.closeConnection();
         
         // Say goodbye to the user.
         System.out.println("Good Bye!");

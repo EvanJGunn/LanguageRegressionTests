@@ -24,7 +24,7 @@ public class MyConnection {
      * @param user The username used to access the MySQL database.
      * @param password The password for the user.
      */
-    public static boolean InitializeConnection(String awsEndpoint, String port, String schema, String user, String password) {
+    public static boolean initializeConnection(String awsEndpoint, String port, String schema, String user, String password) {
         myConnection = new MyConnection();
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
@@ -163,7 +163,7 @@ public class MyConnection {
      * This command is currently for debug, obviously listing 
      * @param language Lists words based on language
      */
-    public void ListLanguageWords(String language) {
+    public void listLanguageWords(String language) {
         String newQuery = "SELECT * "
                         + "FROM word W "
                         + "WHERE W.wlanguage = '" + language + "';";
@@ -210,7 +210,7 @@ public class MyConnection {
     /**
      * Close the database connection.
      */
-    public static void CloseConnection() {
+    public static void closeConnection() {
         if (myConnection != null && myConnection.connection != null) {
             try {
                 myConnection.connection.close();
