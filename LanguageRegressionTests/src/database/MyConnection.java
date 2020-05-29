@@ -53,7 +53,7 @@ public class MyConnection {
     }
     
     /**
-     * 
+     * Run a SQL update.
      * @param update The SQL update, or insertion.
      * @return Return the number of rows affected
      */
