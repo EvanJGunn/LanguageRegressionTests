@@ -9,7 +9,7 @@ package database;
  *
  */
 public class LocalWord {
-    private String romanization, language, meaning, wtype, main, ancillary, tname;
+    private String romanization, language, meaning, wtype, main, ancillary, sname;
     private int wid = -1;
     
     /**
@@ -24,7 +24,22 @@ public class LocalWord {
         wtype = null;
         main = null;
         ancillary = null;
-        tname = null;
+        sname = null;
+    }
+    
+    /**
+     * This constructor should be used when attempting to pull unknown data for a specific word,
+     * when that word may have homonyms in the database. The combination of (word,meaning) must
+     * be unique in the database, functioning somewhat as a second key.
+     */
+    public LocalWord(String word, String language, String meaning) {
+        this.romanization = word;
+        this.language = language;
+        this.meaning = meaning;
+        wtype = null;
+        main = null;
+        ancillary = null;
+        sname = null;
     }
     
     /**
@@ -33,13 +48,13 @@ public class LocalWord {
      * When you want to update the symbols table with a new combination of symbols for a word already in the database.
      * When you want to update the source table with a new source.
      * All values may be null, but certain actions will only work with non-null values.
-     * @param word The word, which you may wish to push.
+     * @param word The romanized word.
      * @param language The language of the word.
      * @param meaning The meaning of the word.
      * @param wtype The type of the word.
      * @param main The main symbols of the word.
      * @param ancillary The ancillary symbols of the word.
-     * @param source The name of the source.
+     * @param source The name of the source, known to LocalWord as "sname".
      */
     public LocalWord(String word, String language, String meaning, String wtype, String main, String ancillary, String source) {
         this.romanization = word;
@@ -48,15 +63,42 @@ public class LocalWord {
         this.wtype = wtype;
         this.main = main;
         this.ancillary = ancillary;
-        this.tname = source;
+        this.sname = source;
     }
     
-    public void setWID(int wid) {
-        this.wid = wid;
-    }
-    
+    /**
+     * @return Return the word ID of the LocalWord, this is a unique descriptor of the table.
+     */
     public int getWID() {
         return wid;
+    }
+    
+    /**
+     * Set the values that the word table would contain in the database.
+     * Useful when finishing a partial LocalWord with data from the database.
+     */
+    public void setWordValues(String word, String language, String meaning, String wtype) {
+        this.romanization = word;
+        this.language = language;
+        this.meaning = meaning;
+        this.wtype = wtype;
+    }
+    
+    /**
+     * Set the values that the symbol table would contain in the database.
+     * Useful when pulling the symbols for a partially finished LocalWord.
+     */
+    public void setSymbolValues(String main, String ancillary) {
+        this.main = main;
+        this.ancillary = ancillary;
+    }
+    
+    /**
+     * Set the source value that would be contained in the source table.
+     * useful when pulling source data for a partially finished word.
+     */
+    public void setSourceValue(String source) {
+        this.sname = source;
     }
     
     /**
@@ -78,24 +120,35 @@ public class LocalWord {
      */
     public String toString() {
         return "Word ID: " + widToString() + ", Romanized Word: " + romanization + ", Language: " + language + ", Meaning: " + meaning
-             + ", Type: " + wtype + ", Main Symbols: " + main + ", Ancillary: " + ancillary + ", Source: " + tname;
+             + ", Type: " + wtype + ", Main Symbols: " + main + ", Ancillary: " + ancillary + ", Source: " + sname;
     }
     
-    // TODO Complete push function
     /**
-     * 
-     * @return
-     */
-    public boolean push() {
-        return true;
-    }
-    
-    // TODO Complete pull function
-    /**
-     * 
-     * @return 
+     * Pull data from the database to complete the LocalWord, may overwrite come of current data.
+     * @return True if the pull was successful, false if the pull failed. Pull can succeed partially and return true.
      */
     public boolean pull() {
+        if (MyConnection.myConnection == null) {
+            System.out.println("Attempting to pull remote word data on null connection.");
+            return false;
+        }
+        
+        // Pull the word ID
+        int remoteWID = -1;
+        remoteWID = MyConnection.myConnection.checkForWord(romanization, language, meaning);
+        if (remoteWID < 0) {
+            return false;
+        }
+        wid = remoteWID;
+        
+        // Pull from the word table.
+        if(!MyConnection.myConnection.setLocalWordTable(this)) return false;
+        
+        // Attempt to pull from the symbols table.
+        MyConnection.myConnection.setLocalSymbolsTable(this);
+        
+        // Attempt to pull from the source table.
+        MyConnection.myConnection.setLocalSourceTable(this);
         return true;
     }
 }

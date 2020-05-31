@@ -69,12 +69,16 @@ public class MyConnection {
         return rowsUpdated;
     }
     
-    /**
-     * Get the number of rows in a table
-     * @return Return the number of rows in a table, or if an error occurs, return -1.
-     */
-    private int getRowCount(String tableName) {
-        ResultSet result = runQuery("SELECT COUNT(*) FROM " + tableName + ";");
+    ///**
+    // * Get the number of words of a certain language contained in the word table.
+    // * @return Return the number of rows in a table, or if an error occurs, return -1.
+    // */
+    // This function used to provide unique ids for new insertions, however deletions
+    // would cause this method to fail.
+    // Table now uses AUTO_INCREMENT, as such this function is deprecated.
+    /*private int getRowCount(String table) {
+        ResultSet result = runQuery("SELECT COUNT(*) "
+                                  + "FROM " + table + ";");
         int count = 0;
         try {
             result.next();
@@ -84,9 +88,8 @@ public class MyConnection {
             count = -1;
         }
         return count;
-    }
+    }*
 
-    // TODO This function has a lot of parameters, in the future it may need to be redone, or split up
     /**
      * Insert a word, its symbols, and its source into the associated tables.
      * @param word The romanized word.
@@ -100,24 +103,19 @@ public class MyConnection {
      */
     public boolean insertWord(String word, String language, String meaning,
             String wtype, String main, String ancillary, String sourceName) {
-        // Generate a new ID for the new word by adding 1 to the count of the word table.
-        int newWordID = getRowCount(WORD_TABLE) + 1;
-        
-        if (newWordID == -1) {
-            System.out.println("Failed to acquire word count from database, word not inserted.");
-            return false;
-        }
         
         // Begin the transaction
         runQuery("START TRANSACTION;");
         
         // Generate the proper SQL query for insertion into the word table.
-        String wordUpdate = "INSERT INTO " + WORD_TABLE + " (wlanguage, wid, meaning, romanization, wtype) "
-                         + "VALUES ('" + language + "','" + newWordID + "','" + meaning + "','" + word + "','" + wtype + "');";
+        String wordUpdate = "INSERT INTO " + WORD_TABLE + " (wlanguage, meaning, romanization, wtype) "
+                          + "VALUES ('" + language + "','" + meaning + "','" + word + "','" + wtype + "');";
         int success = runUpdate(wordUpdate);
         
+        int newWID = checkForWord(word, language, meaning);
+        
         // Check for insertion success.
-        if (success < 1) {
+        if (success < 1 || newWID < 0) {
             // Rollback the transaction
             runQuery("ROLLBACK;");
             System.out.println("Insertion of " + word + " has failed.");
@@ -129,7 +127,7 @@ public class MyConnection {
         if (main != null) {
             if(ancillary == null) ancillary = "NULL";
             String symbolUpdate = "INSERT INTO " + SYMBOL_TABLE + " (wid, main, ancillary) "
-                                + "VALUES ('" + newWordID + "','" + main + "','" + ancillary +"');";
+                                + "VALUES (" + newWID + ",'" + main + "','" + ancillary +"');";
             success = runUpdate(symbolUpdate);
             
             if (success < 1) {
@@ -142,8 +140,8 @@ public class MyConnection {
         
         // Handle source update if necessary.
         if (sourceName != null) {
-            String sourceUpdate = "INSERT INTO " + SOURCE_TABLE + " (wid, tname) "
-                                + "VALUES ('" + newWordID + "','" + sourceName + "');";
+            String sourceUpdate = "INSERT INTO " + SOURCE_TABLE + " (wid, sname) "
+                                + "VALUES (" + newWID + ",'" + sourceName + "');";
             success = runUpdate(sourceUpdate);
             
             if (success < 1) {
@@ -159,25 +157,60 @@ public class MyConnection {
     }
     
     /**
+     * Remove a word of a language and wid from the database.
+     * First attempt to remove symbols data and source data, which have foreign key constraints on word.
+     * Then delete word.
+     * @param wid
+     * @return
+     */
+    public boolean removeWord(int wid, String language) {
+        String newSourceUpdate = "DELETE "
+                               + "FROM " + SOURCE_TABLE + " S "
+                               + "WHERE S.wid = " + wid + ";";
+        String newSymbolsUpdate = "DELETE "
+                                + "FROM " + SYMBOL_TABLE + " S "
+                                + "WHERE S.wid = " + wid + ";";
+        String newWordUpdate = "DELETE "
+                             + "FROM " + WORD_TABLE + " W "
+                             + "WHERE W.wid = " + wid + ";";
+        
+        // Run each update in a transaction, and rollback ONLY IF
+        // the word update/deletion fails. This is because
+        // there may be no entries in the symbols or source table.
+        // But if a source/symbols update fails and there were entries,
+        // the word table update will also fail, still causing the
+        // transaction to be rolled back.
+        runQuery("START TRANSACTION;");
+        runUpdate(newSourceUpdate);
+        runUpdate(newSymbolsUpdate);
+        int success = runUpdate(newWordUpdate);
+        if (success == 0) {
+            runQuery("ROLLBACK;");
+            return false;
+        }
+        runQuery("COMMIT;");
+        return true;
+    }
+    
+    /**
      * List all the words entered for a language, along with any data in the symbols and wordsource tables.
      * This command is currently for debug, obviously listing 
      * @param language Lists words based on language
      */
     public void listLanguageWords(String language) {
-        String newQuery = "SELECT * "
-                        + "FROM word W "
+        String newQuery = "SELECT W.romanization, W.wlanguage, W.meaning "
+                        + "FROM " + WORD_TABLE + " W "
                         + "WHERE W.wlanguage = '" + language + "';";
         ResultSet result = runQuery(newQuery);
         if (result == null) {
             System.out.println("Failed to get query result.");
             return;
         }
-        System.out.println("Listing wid, romanization, and language, all other fields will be null:");
+        System.out.println("Listing:");
         try {
             while (result.next()) {
-                LocalWord newWord = new LocalWord(result.getString(4),result.getString(1));
-                newWord.setWID(result.getInt(2));
-                // TODO possibly add a pull here to complete word data
+                LocalWord newWord = new LocalWord(result.getString(1),result.getString(2),result.getString(3));
+                newWord.pull();
                 System.out.println(newWord.toString());
             }
         } catch (SQLException e) {
@@ -186,24 +219,121 @@ public class MyConnection {
     }
     
     /**
-     * Check if a word exists in the database.
+     * Many languages contain homonyms, this function allows the user to check if a word has multiple meanings stored in the database.
+     * @param word The romanized spelling of the word.
+     * @param language The language of the word.
+     */
+    public void listHomonyms(String word, String language) {
+        String newQuery = "SELECT W.romanization, W.wlanguage, W.meaning "
+                + "FROM " + WORD_TABLE + " W "
+                + "WHERE W.wlanguage = '" + language + "' AND W.romanization = '" + word + "';";
+        try {
+            ResultSet result = runQuery(newQuery);
+            System.out.println("Listing:");
+            while (result.next()) {
+                LocalWord newWord = new LocalWord(result.getString(1),result.getString(2),result.getString(3));
+                newWord.pull();
+                System.out.println(newWord.toString());
+            }
+        } catch (SQLException e) {
+            System.out.println(e);
+        }
+    }
+    
+    /**
+     * Check if a word exists in the database. If meaning is not set, then does not account for homonyms,
+     * returns the first word wid that matches thw word in the language.
+     * If meaning is set, will return the unique word/meaning combination wid.
      * @param word The word for which we are checking.
      * @param language The language of the word.
      * @return If the word exists, return its wid. If the word doesn't exist, return -1. On error, return -2.
      */
-    public int checkForWord(String word, String language) {
-        String newQuery = "SELECT * "
-                        + "FROM word W "
-                        + "WHERE W.wlanguage = '" + language + "' AND W.romanization = '" + word + "';";
+    public int checkForWord(String word, String language, String meaning) {
+        String newQuery = "";
+        if (meaning == null) {
+            newQuery = "SELECT W.wid "
+                     + "FROM " + WORD_TABLE + " W "
+                     + "WHERE W.wlanguage = '" + language + "' AND W.romanization = '" + word + "';";
+        } else {
+            newQuery = "SELECT W.wid "
+                    + "FROM " + WORD_TABLE + " W "
+                    + "WHERE W.wlanguage = '" + language + "' AND W.romanization = '" + word + "' AND W.meaning = '" + meaning + "';";
+        }
         try {
             ResultSet result = runQuery(newQuery);
             if (result.next()) {
-                return result.getInt(2);
+                return result.getInt(1);
             }
             return -1;
         } catch (SQLException e) {
             System.out.println(e);
             return -2;
+        }
+    }
+    
+    /**
+     * Set a local word with data from the remote databases' word table data.
+     * @param myWord The local word we are setting.
+     * @return True if set, false upon error or no results to query (i.e. no word in the database).
+     */
+    public boolean setLocalWordTable(LocalWord myWord) {
+        String newQuery = "SELECT W.wlanguage, W.meaning, W.romanization, W.wtype "
+                        + "FROM " + WORD_TABLE + " W "
+                        + "WHERE W.wid = '" + myWord.getWID() + "';";
+        try {
+            ResultSet result = runQuery(newQuery);
+            if (result.next()) {
+                myWord.setWordValues(result.getString(3), result.getString(1), result.getString(2), result.getString(4));
+                return true;
+            }
+            return false;
+        } catch (SQLException e) {
+            System.out.println(e);
+            return false;
+        }
+    }
+    
+    /**
+     * Set a local word with data from the remote databases' symbols table.
+     * @param myWord The local word we are setting.
+     * @return True if set, false upon error or no results to query (i.e. no symbols in the database).
+     */
+    public boolean setLocalSymbolsTable(LocalWord myWord) {
+        String newQuery = "SELECT S.main, S.ancillary "
+                        + "FROM " + SYMBOL_TABLE + " S "
+                        + "WHERE S.wid = '" + myWord.getWID() + "';";
+        try {
+            ResultSet result = runQuery(newQuery);
+            if (result.next()) {
+                myWord.setSymbolValues(result.getString(1), result.getString(2));
+                return true;
+            }
+            return false;
+        } catch (SQLException e) {
+            System.out.println(e);
+            return false;
+        }
+    }
+    
+    /**
+     * Set a local word with data from the remote databases' source table.
+     * @param myWord The local word we are setting.
+     * @return True if set, false upon error or no results to query (i.e. no source in the database).
+     */
+    public boolean setLocalSourceTable(LocalWord myWord) {
+        String newQuery = "SELECT S.sname "
+                        + "FROM " + SOURCE_TABLE + " S "
+                        + "WHERE S.wid = '" + myWord.getWID() + "';";
+        try {
+            ResultSet result = runQuery(newQuery);
+            if (result.next()) {
+                myWord.setSourceValue(result.getString(1));
+                return true;
+            }
+            return false;
+        } catch (SQLException e) {
+            System.out.println(e);
+            return false;
         }
     }
     

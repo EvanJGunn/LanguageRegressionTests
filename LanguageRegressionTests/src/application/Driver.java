@@ -95,8 +95,10 @@ public class Driver {
                 + "Please select from the list of commands, and type below:\n"
                 + "quit: Exit the program.\n"
                 + "insert: Begin a word insertion.\n"
+                + "delete: Begin a word deletion, must know the wid (word id).\n"
                 + "listall: List all the words by a language.\n"
-                + "checkfor: Check for a vocabulary word's existence in the database.\n"
+                + "listhomonyms: List all homonyms for a word's spelling in the database.\n"
+                + "checkfor: Check for a vocabulary word's existence in the database, does not account for homonyms.\n"
                 + "********************\n");
     }
     
@@ -137,7 +139,7 @@ public class Driver {
                     // Check if there are secondary symbols
                     answer  = "";
                     while (!(answer.matches("y") || answer.matches("n"))) {
-                        System.out.println("Would you like to enter ancillary symbols (hiragan, etc...)? y/n");
+                        System.out.println("Would you like to enter ancillary symbols (hiragana, etc...)? y/n");
                         answer = scanner.nextLine();
                     }
                     
@@ -168,26 +170,52 @@ public class Driver {
                     System.out.println("Failed to insert word, all changes rolled back.");
                 }
                 break;
+            case "delete":
+                System.out.println("Please enter the language of the word you would like to delete:");
+                String deletionLanguage = scanner.nextLine();
+                System.out.println("Please enter the wid of the word you would like to delete:");
+                int deletionWID = scanner.nextInt();
+                boolean deleted = MyConnection.myConnection.removeWord(deletionWID, deletionLanguage);
+                if (deleted) {
+                    System.out.println("Word successfully deleted!");
+                } else {
+                    System.out.println("Deletion failed.");
+                }
+                // Progress the line, as scanner.nextInt() leaves a blank line behind.
+                scanner.nextLine();
+                break;
             case "listall":
                 System.out.println("Please enter the language you would like to list:");
                 String listLang = scanner.nextLine();
                 MyConnection.myConnection.listLanguageWords(listLang);
+                break;
+            case "listhomonyms":
+                System.out.println("Please enter the language of the word:");
+                String homonymLang = scanner.nextLine();
+                System.out.println("Please enter the word:");
+                String homonym = scanner.nextLine();
+                MyConnection.myConnection.listHomonyms(homonym, homonymLang);
                 break;
             case "checkfor":
                 System.out.println("Please enter the romanization of the word you would like to check for:");
                 String checkWord = scanner.nextLine();
                 System.out.println("Please enter the language of the word:");
                 String wordLang = scanner.nextLine();
-                int checkVal = MyConnection.myConnection.checkForWord(checkWord, wordLang);
-                if (checkVal == -1) {
+                answer  = "";
+                while (!(answer.matches("y") || answer.matches("n"))) {
+                    System.out.println("Would you like to enter the meaning? Without meaning, a homonym may be returned. y/n");
+                    answer = scanner.nextLine();
+                }
+                meaning = null;
+                if (answer.matches("y")) {
+                    System.out.println("Please enter the meaning:");
+                    meaning = scanner.nextLine();
+                }
+                LocalWord myWord = new LocalWord(checkWord, wordLang, meaning);
+                boolean exists = myWord.pull();
+                if (!exists) {
                     System.out.println("Word does not exist in database.");
-                } else if (checkVal == -2) {
-                    System.out.println("Error occurred, unable to check for word.");
                 } else {
-                    LocalWord myWord = new LocalWord(checkWord, wordLang);
-                    myWord.setWID(checkVal);
-                    // TODO Once pull is completed, pull word data here before printing.
-                    //myWord.pull();
                     System.out.println("Found word:");
                     System.out.println(myWord.toString());
                 }
@@ -199,11 +227,14 @@ public class Driver {
     }
     
     /**
-     * The clean up function currently closes the connection to the database.
+     * The clean up function.
      */
     private static void cleanUp() {
         // End the connection to the database.
         MyConnection.closeConnection();
+        
+        // Close the scanner.
+        scanner.close();
         
         // Say goodbye to the user.
         System.out.println("Good Bye!");
