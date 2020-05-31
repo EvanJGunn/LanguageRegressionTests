@@ -88,7 +88,7 @@ public class MyConnection {
             count = -1;
         }
         return count;
-    }*
+    }*/
 
     /**
      * Insert a word, its symbols, and its source into the associated tables.
@@ -125,7 +125,7 @@ public class MyConnection {
         
         // Handle symbols update if necessary.
         if (main != null) {
-            if(ancillary == null) ancillary = "NULL";
+            if (ancillary == null) ancillary = "NULL";
             String symbolUpdate = "INSERT INTO " + SYMBOL_TABLE + " (wid, main, ancillary) "
                                 + "VALUES (" + newWID + ",'" + main + "','" + ancillary +"');";
             success = runUpdate(symbolUpdate);
@@ -225,8 +225,8 @@ public class MyConnection {
      */
     public void listHomonyms(String word, String language) {
         String newQuery = "SELECT W.romanization, W.wlanguage, W.meaning "
-                + "FROM " + WORD_TABLE + " W "
-                + "WHERE W.wlanguage = '" + language + "' AND W.romanization = '" + word + "';";
+                        + "FROM " + WORD_TABLE + " W "
+                        + "WHERE W.wlanguage = '" + language + "' AND W.romanization = '" + word + "';";
         try {
             ResultSet result = runQuery(newQuery);
             System.out.println("Listing:");

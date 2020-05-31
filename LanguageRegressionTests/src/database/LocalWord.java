@@ -142,7 +142,7 @@ public class LocalWord {
         wid = remoteWID;
         
         // Pull from the word table.
-        if(!MyConnection.myConnection.setLocalWordTable(this)) return false;
+        if (!MyConnection.myConnection.setLocalWordTable(this)) return false;
         
         // Attempt to pull from the symbols table.
         MyConnection.myConnection.setLocalSymbolsTable(this);

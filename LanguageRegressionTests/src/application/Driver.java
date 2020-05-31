@@ -26,7 +26,7 @@ public class Driver {
         scanner = new Scanner(System.in);
         
         // Connect to the server.
-        while(!acquiredConnection());
+        while (!acquiredConnection());
         
         // Serve options to the user.
         optionsLoop();
