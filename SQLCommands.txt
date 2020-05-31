@@ -1,19 +1,17 @@
 CREATE TABLE word
 (
+  wid INT NOT NULL AUTO_INCREMENT,
   wlanguage VARCHAR(20),
-  wid NUMERIC(8,0),
   meaning VARCHAR(40),
   romanization VARCHAR(45),
   wtype VARCHAR(20),
-  PRIMARY KEY(wid,wlanguage)
+  PRIMARY KEY(wid),
+  UNIQUE(meaning, romanization)
 );
-
-ALTER TABLE word
-ADD UNIQUE (meaning, romanization);
 
 CREATE TABLE symbols
 (
-  wid NUMERIC(8,0),
+  wid INT,
   main VARCHAR(45),
   ancillary VARCHAR(45),
   PRIMARY KEY(wid, main),
@@ -22,8 +20,8 @@ CREATE TABLE symbols
 
 CREATE TABLE wordsource
 (
-  wid NUMERIC(8,0),
-  tname VARCHAR(45),
-  PRIMARY KEY(wid,tname),
+  wid INT,
+  sname VARCHAR(45),
+  PRIMARY KEY(wid,sname),
   FOREIGN KEY(wid) REFERENCES word(wid)
 );
