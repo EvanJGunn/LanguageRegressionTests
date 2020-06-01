@@ -165,7 +165,7 @@ public class Driver {
                 boolean success = MyConnection.myConnection.insertWord(word, language, meaning, wtype, main, ancillary, sourceName);
                 
                 if (success) {
-                    System.out.println("Word successfully inserted into table.");
+                    System.out.println("Word successfully inserted into table(s).");
                 } else {
                     System.out.println("Failed to insert word, all changes rolled back.");
                 }
