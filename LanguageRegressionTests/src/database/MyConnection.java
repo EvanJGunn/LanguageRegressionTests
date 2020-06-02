@@ -1,6 +1,9 @@
 package database;
 
 import java.sql.*;
+import java.util.ArrayList;
+
+import application.Logger;
 
 /**
  * MyConnection manages both the MySQL server connection, and all SQL commands issued to that server.
@@ -14,7 +17,17 @@ public class MyConnection {
     private Connection connection = null;
     
     // The singleton's instance
-    public static MyConnection myConnection = null;
+    private static MyConnection myConnection = null;
+    
+    /**
+     * @return The single instance of the MyConnection class.
+     */
+    public static MyConnection getInstance() {
+        if (myConnection == null) {
+            myConnection = new MyConnection();
+        }
+        return myConnection;
+    }
     
     /**
      * The connection must be initialized via this initializer method.
@@ -30,7 +43,7 @@ public class MyConnection {
             Class.forName("com.mysql.cj.jdbc.Driver");
             myConnection.connection = DriverManager.getConnection("jdbc:mysql://"+awsEndpoint+":"+port+"/"+schema, user, password);
         } catch (Exception e) {
-            System.out.println(e);
+            Logger.getInstance().log(e.getMessage());
             return false;
         }
         return true;
@@ -47,7 +60,7 @@ public class MyConnection {
             Statement statement = connection.createStatement();
             set = statement.executeQuery(query);
         } catch (SQLException e) {
-            System.out.println(e);
+            Logger.getInstance().log(e.getMessage());
         }
         return set;
     }
@@ -63,32 +76,36 @@ public class MyConnection {
             Statement statement = connection.createStatement();
             rowsUpdated = statement.executeUpdate(update);
         } catch (SQLException e) {
-            System.out.println(e);
+            Logger.getInstance().log(e.getMessage());
             return 0;
         }
         return rowsUpdated;
     }
     
-    ///**
-    // * Get the number of words of a certain language contained in the word table.
-    // * @return Return the number of rows in a table, or if an error occurs, return -1.
-    // */
-    // This function used to provide unique ids for new insertions, however deletions
-    // would cause this method to fail.
-    // Table now uses AUTO_INCREMENT, as such this function is deprecated.
-    /*private int getRowCount(String table) {
-        ResultSet result = runQuery("SELECT COUNT(*) "
-                                  + "FROM " + table + ";");
-        int count = 0;
+    /**
+     * getWords is a function meant to assist question factories in creating complete or partial LocalWord instances
+     * from the database. An sql query is passed that MUST retrieve all of these fields in the following order:
+     * romanization, wlanguage, meaning, wtype, main, ancillary, sname.
+     * If any of these fields are not necessary, they should be put as null, i.e. SELECT NULL; This is because
+     * A ResultSet's getString() method will return null if it parses NULL.
+     * @param sqlQuery The compliant query.
+     * @param amount The amount of words that are requested, not necessarily the amount returned.
+     * @return Returns either a filled arraylist of localwords, a partial arraylist, or an empty arraylist, depending on success of the query.
+     */
+    public ArrayList<LocalWord> getWords(String sqlQuery, int amount) {
+        ArrayList<LocalWord> myWords = new ArrayList<LocalWord>();
+        ResultSet results = runQuery(sqlQuery);
         try {
-            result.next();
-            count = result.getInt(1);
+            while (results.next()) {
+                LocalWord newWord = new LocalWord(results.getString(1),results.getString(2),results.getString(3),
+                        results.getString(4),results.getString(5),results.getString(6),results.getString(7));
+                myWords.add(newWord);
+            }
         } catch (SQLException e) {
-            System.out.println(e);
-            count = -1;
+            Logger.getInstance().log(e.getMessage());
         }
-        return count;
-    }*/
+        return myWords;
+    }
 
     /**
      * Insert a word, its symbols, and its source into the associated tables.
@@ -118,10 +135,10 @@ public class MyConnection {
         if (success < 1 || newWID < 0) {
             // Rollback the transaction
             runQuery("ROLLBACK;");
-            System.out.println("Insertion of " + word + " has failed.");
+            Logger.getInstance().log("Insertion of " + word + " has failed.");
             return false;
         }
-        System.out.println("Insertion into word table has succeeded.");
+        Logger.getInstance().log("Insertion into word table has succeeded.");
         
         // Handle symbols update if necessary.
         if (main != null) {
@@ -132,10 +149,10 @@ public class MyConnection {
             
             if (success < 1) {
                 runQuery("ROLLBACK;");
-                System.out.println("Insertion into symbols table of " + main + " has failed.");
+                Logger.getInstance().log("Insertion into symbols table of " + main + " has failed.");
                 return false;
             }
-            System.out.println("Insertion into symbols table has succeeded.");
+            Logger.getInstance().log("Insertion into symbols table has succeeded.");
         }
         
         // Handle source update if necessary.
@@ -146,10 +163,10 @@ public class MyConnection {
             
             if (success < 1) {
                 runQuery("ROLLBACK;");
-                System.out.println("Insertion into source table with " + sourceName + " has failed.");
+                Logger.getInstance().log("Insertion into source table with " + sourceName + " has failed.");
                 return false;
             }
-            System.out.println("Insertion into source table has succeeded.");
+            Logger.getInstance().log("Insertion into source table has succeeded.");
         }
         
         runQuery("COMMIT;");
@@ -203,18 +220,18 @@ public class MyConnection {
                         + "WHERE W.wlanguage = '" + language + "';";
         ResultSet result = runQuery(newQuery);
         if (result == null) {
-            System.out.println("Failed to get query result.");
+            Logger.getInstance().log("Failed to get query result.");
             return;
         }
-        System.out.println("Listing:");
+        Logger.getInstance().log("Listing:");
         try {
             while (result.next()) {
                 LocalWord newWord = new LocalWord(result.getString(1),result.getString(2),result.getString(3));
                 newWord.pull();
-                System.out.println(newWord.toString());
+                Logger.getInstance().log(newWord.toString());
             }
         } catch (SQLException e) {
-            System.out.println(e);
+            Logger.getInstance().log(e.getMessage());
         }
     }
     
@@ -229,14 +246,14 @@ public class MyConnection {
                         + "WHERE W.wlanguage = '" + language + "' AND W.romanization = '" + word + "';";
         try {
             ResultSet result = runQuery(newQuery);
-            System.out.println("Listing:");
+            Logger.getInstance().log("Listing:");
             while (result.next()) {
                 LocalWord newWord = new LocalWord(result.getString(1),result.getString(2),result.getString(3));
                 newWord.pull();
-                System.out.println(newWord.toString());
+                Logger.getInstance().log(newWord.toString());
             }
         } catch (SQLException e) {
-            System.out.println(e);
+            Logger.getInstance().log(e.getMessage());
         }
     }
     
@@ -266,7 +283,7 @@ public class MyConnection {
             }
             return -1;
         } catch (SQLException e) {
-            System.out.println(e);
+            Logger.getInstance().log(e.getMessage());
             return -2;
         }
     }
@@ -288,7 +305,7 @@ public class MyConnection {
             }
             return false;
         } catch (SQLException e) {
-            System.out.println(e);
+            Logger.getInstance().log(e.getMessage());
             return false;
         }
     }
@@ -310,7 +327,7 @@ public class MyConnection {
             }
             return false;
         } catch (SQLException e) {
-            System.out.println(e);
+            Logger.getInstance().log(e.getMessage());
             return false;
         }
     }
@@ -332,7 +349,7 @@ public class MyConnection {
             }
             return false;
         } catch (SQLException e) {
-            System.out.println(e);
+            Logger.getInstance().log(e.getMessage());
             return false;
         }
     }
@@ -345,7 +362,7 @@ public class MyConnection {
             try {
                 myConnection.connection.close();
             } catch (SQLException e) {
-                System.out.println(e);
+                Logger.getInstance().log(e.getMessage());
             }
         }
     }

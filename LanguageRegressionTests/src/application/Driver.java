@@ -4,6 +4,8 @@ import java.util.Scanner;
 
 import database.LocalWord;
 import database.MyConnection;
+import lrt.SymbolsMainQuestionFactory;
+import lrt.Test;
 
 /**
  * The Driver class contains the main loop for execution.
@@ -20,7 +22,7 @@ public class Driver {
      */
     public static void execute() {
         // Introduction
-        System.out.println("Welcome to the Language Regression Tests program!");
+        Logger.getInstance().log("Welcome to the Language Regression Tests program!");
         
         // Set up the scanner that will be used.
         scanner = new Scanner(System.in);
@@ -40,36 +42,36 @@ public class Driver {
      * @return Return true if the connection succeeds, false upon failure to connect.
      */
     private static boolean acquiredConnection() {
-        System.out.println("Please enter your AWS Endpoint:");
+        Logger.getInstance().log("Please enter your AWS Endpoint:");
         String endpoint = scanner.nextLine();
         
-        System.out.println("Please enter the port number:");
+        Logger.getInstance().log("Please enter the port number:");
         String port = scanner.nextLine();
         
-        System.out.println("Please enter the MySQL schema name:");
+        Logger.getInstance().log("Please enter the MySQL schema name:");
         String schema = scanner.nextLine();
         
-        System.out.println("Please enter your username:");
+        Logger.getInstance().log("Please enter your username:");
         String user = scanner.nextLine();
         
-        System.out.println("Please enter your password:");
+        Logger.getInstance().log("Please enter your password:");
         String password = scanner.nextLine();
         
         boolean connected = MyConnection.initializeConnection(endpoint, port, schema, user, password);
         
         // If we are unable to connect, check if the user would like to retry connection.
         if (!connected) {
-            System.out.println("Could not connect to MySQL server, try again? y/n");
+            Logger.getInstance().log("Could not connect to MySQL server, try again? y/n");
             String answer = scanner.nextLine();
             
             if (!answer.matches("y")) {
-                System.out.println("Good Bye!");
+                Logger.getInstance().log("Good Bye!");
                 System.exit(0);
             }
             return false;
         }
         
-        System.out.println("Connection successful!");
+        Logger.getInstance().log("Connection successful!");
         return true;
     }
     
@@ -82,7 +84,7 @@ public class Driver {
             String input = scanner.nextLine();
             boolean parsed = parseOptions(input);
             if (!parsed) {
-                System.out.println("Failed to parse input: "+input);
+                Logger.getInstance().log("Failed to parse input: "+input);
             }
         }
     }
@@ -96,6 +98,7 @@ public class Driver {
                 + "quit: Exit the program.\n"
                 + "insert: Begin a word insertion.\n"
                 + "delete: Begin a word deletion, must know the wid (word id).\n"
+                + "create: Begin creation of a test, currently creates symbols test.\n"
                 + "listall: List all the words by a language.\n"
                 + "listhomonyms: List all homonyms for a word's spelling in the database.\n"
                 + "checkfor: Check for a vocabulary word's existence in the database, does not account for homonyms.\n"
@@ -116,35 +119,35 @@ public class Driver {
                 String word, language, meaning, wtype, main = null, ancillary = null, sourceName = null;
                 
                 // Get data values for the word table, this is required for all insertions
-                System.out.println("Please enter the romanization of the word you would like to insert:");
+                Logger.getInstance().log("Please enter the romanization of the word you would like to insert:");
                 word = scanner.nextLine();
-                System.out.println("Please enter the language of the word:");
+                Logger.getInstance().log("Please enter the language of the word:");
                 language = scanner.nextLine();
-                System.out.println("Please enter the meaning of the word in 40 characters or less:");
+                Logger.getInstance().log("Please enter the meaning of the word in 40 characters or less:");
                 meaning = scanner.nextLine();
-                System.out.println("Please enter the type of the word, noun, verb, etc...:");
+                Logger.getInstance().log("Please enter the type of the word, noun, verb, etc...:");
                 wtype = scanner.nextLine();
                 
                 // Get data values for the symbols table
                 String answer = "";
                 while (!(answer.matches("y") || answer.matches("n"))) {
-                    System.out.println("Would you like to enter data for the symbols table? y/n");
+                    Logger.getInstance().log("Would you like to enter data for the symbols table? y/n");
                     answer = scanner.nextLine();
                 }
                 
                 if (answer.matches("y")) {
-                    System.out.println("Please enter the main (kanji, etc...) symbols:");
+                    Logger.getInstance().log("Please enter the main (kanji, etc...) symbols:");
                     main = scanner.nextLine();
                     
                     // Check if there are secondary symbols
                     answer  = "";
                     while (!(answer.matches("y") || answer.matches("n"))) {
-                        System.out.println("Would you like to enter ancillary symbols (hiragana, etc...)? y/n");
+                        Logger.getInstance().log("Would you like to enter ancillary symbols (hiragana, etc...)? y/n");
                         answer = scanner.nextLine();
                     }
                     
                     if (answer.matches("y")) {
-                        System.out.println("Please enter the ancillary symbols:");
+                        Logger.getInstance().log("Please enter the ancillary symbols:");
                         ancillary = scanner.nextLine();
                     }
                 }
@@ -152,72 +155,78 @@ public class Driver {
                 // Get a source value for the wordsource table
                 answer = "";
                 while (!(answer.matches("y") || answer.matches("n"))) {
-                    System.out.println("Would you like to enter data for the source table? y/n");
+                    Logger.getInstance().log("Would you like to enter data for the source table? y/n");
                     answer = scanner.nextLine();
                 }
                 
                 if (answer.matches("y")) {
-                    System.out.println("Please enter the source in 45 characters or less:");
+                    Logger.getInstance().log("Please enter the source in 45 characters or less:");
                     sourceName = scanner.nextLine();
                 }
                 
                 // The MyConnection singleton manages all sql queries/updates
-                boolean success = MyConnection.myConnection.insertWord(word, language, meaning, wtype, main, ancillary, sourceName);
+                boolean success = MyConnection.getInstance().insertWord(word, language, meaning, wtype, main, ancillary, sourceName);
                 
                 if (success) {
-                    System.out.println("Word successfully inserted into table(s).");
+                    Logger.getInstance().log("Word successfully inserted into table(s).");
                 } else {
-                    System.out.println("Failed to insert word, all changes rolled back.");
+                    Logger.getInstance().log("Failed to insert word, all changes rolled back.");
                 }
                 break;
             case "delete":
-                System.out.println("Please enter the language of the word you would like to delete:");
+                Logger.getInstance().log("Please enter the language of the word you would like to delete:");
                 String deletionLanguage = scanner.nextLine();
-                System.out.println("Please enter the wid of the word you would like to delete:");
+                Logger.getInstance().log("Please enter the wid of the word you would like to delete:");
                 int deletionWID = scanner.nextInt();
-                boolean deleted = MyConnection.myConnection.removeWord(deletionWID, deletionLanguage);
+                boolean deleted = MyConnection.getInstance().removeWord(deletionWID, deletionLanguage);
                 if (deleted) {
-                    System.out.println("Word successfully deleted!");
+                    Logger.getInstance().log("Word successfully deleted!");
                 } else {
-                    System.out.println("Deletion failed.");
+                    Logger.getInstance().log("Deletion failed.");
                 }
                 // Progress the line, as scanner.nextInt() leaves a blank line behind.
                 scanner.nextLine();
                 break;
+            case "create":
+                Logger.getInstance().log("Please enter the language of the test you would like to create:");
+                String testLanguage = scanner.nextLine();
+                Test myTest = new Test(10, testLanguage, new SymbolsMainQuestionFactory());
+                myTest.administer(scanner);
+                break;
             case "listall":
-                System.out.println("Please enter the language you would like to list:");
+                Logger.getInstance().log("Please enter the language you would like to list:");
                 String listLang = scanner.nextLine();
-                MyConnection.myConnection.listLanguageWords(listLang);
+                MyConnection.getInstance().listLanguageWords(listLang);
                 break;
             case "listhomonyms":
-                System.out.println("Please enter the language of the word:");
+                Logger.getInstance().log("Please enter the language of the word:");
                 String homonymLang = scanner.nextLine();
-                System.out.println("Please enter the word:");
+                Logger.getInstance().log("Please enter the word:");
                 String homonym = scanner.nextLine();
-                MyConnection.myConnection.listHomonyms(homonym, homonymLang);
+                MyConnection.getInstance().listHomonyms(homonym, homonymLang);
                 break;
             case "checkfor":
-                System.out.println("Please enter the romanization of the word you would like to check for:");
+                Logger.getInstance().log("Please enter the romanization of the word you would like to check for:");
                 String checkWord = scanner.nextLine();
-                System.out.println("Please enter the language of the word:");
+                Logger.getInstance().log("Please enter the language of the word:");
                 String wordLang = scanner.nextLine();
                 answer  = "";
                 while (!(answer.matches("y") || answer.matches("n"))) {
-                    System.out.println("Would you like to enter the meaning? Without meaning, a homonym may be returned. y/n");
+                    Logger.getInstance().log("Would you like to enter the meaning? Without meaning, a homonym may be returned. y/n");
                     answer = scanner.nextLine();
                 }
                 meaning = null;
                 if (answer.matches("y")) {
-                    System.out.println("Please enter the meaning:");
+                    Logger.getInstance().log("Please enter the meaning:");
                     meaning = scanner.nextLine();
                 }
                 LocalWord myWord = new LocalWord(checkWord, wordLang, meaning);
                 boolean exists = myWord.pull();
                 if (!exists) {
-                    System.out.println("Word does not exist in database.");
+                    Logger.getInstance().log("Word does not exist in database.");
                 } else {
-                    System.out.println("Found word:");
-                    System.out.println(myWord.toString());
+                    Logger.getInstance().log("Found word:");
+                    Logger.getInstance().log(myWord.toString());
                 }
                 break;
             default:
@@ -237,6 +246,6 @@ public class Driver {
         scanner.close();
         
         // Say goodbye to the user.
-        System.out.println("Good Bye!");
+        Logger.getInstance().log("Good Bye!");
     }
 }

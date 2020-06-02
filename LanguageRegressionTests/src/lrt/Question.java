@@ -30,9 +30,9 @@ public class Question {
     }
 
     /**
-     * @return The user's answer.
+     * @return Does the user's answer match the correct answer? Then return true, otherwise false.
      */
-    public String getUserAnswer() {
-        return userAnswer;
+    public Boolean correctAnswer() {
+        return userAnswer.matches(answer);
     }
 }

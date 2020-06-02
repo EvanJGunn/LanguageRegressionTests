@@ -102,6 +102,20 @@ public class LocalWord {
     }
     
     /**
+     * Get the main symbols string, useful when generating questions.
+     */
+    public String getMainSymbols() {
+        return main;
+    }
+    
+    /**
+     * Get the ancillary symbols string, useful when generating questions.
+     */
+    public String getAncillarySymbol() {
+        return ancillary;
+    }
+    
+    /**
      * The wid is initially -1, which means it has not been set.
      * When printing, this value should be displayed as 'Not Set'.
      * The function facilitates this rule.
@@ -128,27 +142,22 @@ public class LocalWord {
      * @return True if the pull was successful, false if the pull failed. Pull can succeed partially and return true.
      */
     public boolean pull() {
-        if (MyConnection.myConnection == null) {
-            System.out.println("Attempting to pull remote word data on null connection.");
-            return false;
-        }
-        
         // Pull the word ID
         int remoteWID = -1;
-        remoteWID = MyConnection.myConnection.checkForWord(romanization, language, meaning);
+        remoteWID = MyConnection.getInstance().checkForWord(romanization, language, meaning);
         if (remoteWID < 0) {
             return false;
         }
         wid = remoteWID;
         
         // Pull from the word table.
-        if (!MyConnection.myConnection.setLocalWordTable(this)) return false;
+        if (!MyConnection.getInstance().setLocalWordTable(this)) return false;
         
         // Attempt to pull from the symbols table.
-        MyConnection.myConnection.setLocalSymbolsTable(this);
+        MyConnection.getInstance().setLocalSymbolsTable(this);
         
         // Attempt to pull from the source table.
-        MyConnection.myConnection.setLocalSourceTable(this);
+        MyConnection.getInstance().setLocalSourceTable(this);
         return true;
     }
 }
