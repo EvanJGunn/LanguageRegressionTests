@@ -24,7 +24,7 @@ public class Test {
      * @param scanner
      */
     public void administer(Scanner scanner) {
-        if (questions == null) {
+        if (questions == null || questions.size() == 0) {
             Logger.getInstance().log("Test does not contain any questions.");
             return;
         }
@@ -36,8 +36,8 @@ public class Test {
             String answered = scanner.nextLine();
             questions.get(i).setuserAnswer(answered);
             
-            if(questions.get(i).correctAnswer()) Logger.getInstance().log("Correct!");
-            if(!questions.get(i).correctAnswer()) Logger.getInstance().log("Incorrect.");
+            if (questions.get(i).correctAnswer()) Logger.getInstance().log("Correct!");
+            if (!questions.get(i).correctAnswer()) Logger.getInstance().log("Incorrect.");
             Logger.getInstance().log("The correct answer was: " + questions.get(i).getAnswer());
         }
     }

@@ -4,6 +4,8 @@ import java.util.Scanner;
 
 import database.LocalWord;
 import database.MyConnection;
+import lrt.MeaningQuestionFactory;
+import lrt.QuestionFactory;
 import lrt.SymbolsMainQuestionFactory;
 import lrt.Test;
 
@@ -80,7 +82,7 @@ public class Driver {
      */
     private static void optionsLoop() {
         while (continueLoop) {
-            printCommands();
+            logCommands();
             String input = scanner.nextLine();
             boolean parsed = parseOptions(input);
             if (!parsed) {
@@ -92,8 +94,8 @@ public class Driver {
     /**
      * Print the line of available commands, should be replaced with a gui in the future.
      */
-    private static void printCommands() {
-        System.out.print("********************\n"
+    private static void logCommands() {
+        Logger.getInstance().log("********************\n"
                 + "Please select from the list of commands, and type below:\n"
                 + "quit: Exit the program.\n"
                 + "insert: Begin a word insertion.\n"
@@ -102,7 +104,7 @@ public class Driver {
                 + "listall: List all the words by a language.\n"
                 + "listhomonyms: List all homonyms for a word's spelling in the database.\n"
                 + "checkfor: Check for a vocabulary word's existence in the database, does not account for homonyms.\n"
-                + "********************\n");
+                + "********************");
     }
     
     /**
@@ -190,7 +192,48 @@ public class Driver {
             case "create":
                 Logger.getInstance().log("Please enter the language of the test you would like to create:");
                 String testLanguage = scanner.nextLine();
-                Test myTest = new Test(10, testLanguage, new SymbolsMainQuestionFactory());
+                Logger.getInstance().log("********************");
+                Logger.getInstance().log("What type of test would you like to create? Select your answer from the list below:");
+                Logger.getInstance().log("meaning: Type in the meaning of a romanized word.");
+                Logger.getInstance().log("symbol: Type in the reading of a word's symbol(s).");
+                Logger.getInstance().log("********************");
+                String testType = scanner.nextLine();
+                
+                // Create a query modification based on user input
+                String myModification = "";
+                answer = "";
+                while (!(answer.matches("y") || answer.matches("n"))) {
+                    Logger.getInstance().log("Would you like to specify a source from which questions will be generated? y/n");
+                    answer = scanner.nextLine();
+                }
+                if (answer.matches("y")) {
+                    Logger.getInstance().log("Please specify the source:");
+                    myModification = " AND W.wid = N.wid AND N.sname = '" + scanner.nextLine() + "' ";
+                }
+                
+                answer = "";
+                while (!(answer.matches("y") || answer.matches("n"))) {
+                    Logger.getInstance().log("Would you like to specify a word type from which questions will be generated? y/n");
+                    answer = scanner.nextLine();
+                }
+                if (answer.matches("y")) {
+                    Logger.getInstance().log("Please specify the word type (noun, adjective, etc...):");
+                    myModification = myModification + " AND W.wtype = '" + scanner.nextLine() + "' ";
+                }
+                
+                // Create the base question factory, depending on user input
+                QuestionFactory myFactory;
+                if (testType.matches("meaning")) {
+                    myFactory = new MeaningQuestionFactory(myModification);
+                } else if (testType.matches("symbol")) {
+                    myFactory = new SymbolsMainQuestionFactory(myModification);
+                } else {
+                    Logger.getInstance().log("Failed to create test, type of test not valid: " + testType);
+                    break;
+                }
+                
+                // Create the test using the question factory.
+                Test myTest = new Test(10, testLanguage, myFactory);
                 myTest.administer(scanner);
                 break;
             case "listall":

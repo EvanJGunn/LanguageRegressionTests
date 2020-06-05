@@ -13,15 +13,19 @@ import database.MyConnection;
  * @author Evan Gunn
  *
  */
-public class SymbolsMainQuestionFactory extends QuestionFactory{
+public class SymbolsMainQuestionFactory extends QuestionFactory {
+    public SymbolsMainQuestionFactory(String queryModifier) {
+        super(queryModifier);
+    }
+
     @Override
     public ArrayList<Question> generateQuestions(int amount, String language) {
         ArrayList<Question> myQuestions = new ArrayList<Question>();
         
         // Create and run a query on the database to get required data for questions.
         String myQuery = "SELECT NULL, NULL, NULL, NULL, S.main, S.ancillary, NULL "
-                       + "FROM symbols S, word W "
-                       + "WHERE S.wid = W.wid AND W.wlanguage = '" + language + "' "
+                       + "FROM symbols S, word W, wordsource N "
+                       + "WHERE S.wid = W.wid AND W.wlanguage = '" + language + "' " + queryModification
                        + "ORDER BY RAND() "
                        + "LIMIT " + String.valueOf(amount) + " ;";
         ArrayList<LocalWord> myWords = MyConnection.getInstance().getWords(myQuery, amount);

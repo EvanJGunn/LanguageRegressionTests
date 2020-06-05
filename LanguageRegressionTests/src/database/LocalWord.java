@@ -109,6 +109,20 @@ public class LocalWord {
     }
     
     /**
+     * Get the meaning of the romanization.
+     */
+    public String getMeaning() {
+        return meaning;
+    }
+    
+    /**
+     * Get the romanization of the word.
+     */
+    public String getRomanization() {
+        return romanization;
+    }
+    
+    /**
      * Get the ancillary symbols string, useful when generating questions.
      */
     public String getAncillarySymbol() {
