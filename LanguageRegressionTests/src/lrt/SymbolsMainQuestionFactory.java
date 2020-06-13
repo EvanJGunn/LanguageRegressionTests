@@ -23,7 +23,7 @@ public class SymbolsMainQuestionFactory extends QuestionFactory {
         ArrayList<Question> myQuestions = new ArrayList<Question>();
         
         // Create and run a query on the database to get required data for questions.
-        String myQuery = "SELECT NULL, NULL, NULL, NULL, S.main, S.ancillary, NULL "
+        String myQuery = "SELECT DISTINCT NULL, NULL, NULL, NULL, S.main, S.ancillary, NULL "
                        + "FROM symbols S, word W, wordsource N "
                        + "WHERE S.wid = W.wid AND W.wlanguage = '" + language + "' " + queryModification
                        + "ORDER BY RAND() "

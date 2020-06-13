@@ -23,7 +23,7 @@ public class MeaningQuestionFactory extends QuestionFactory {
         ArrayList<Question> myQuestions = new ArrayList<Question>();
         
         // Create and run a query on the database to get required data for questions.
-        String myQuery = "SELECT W.romanization, NULL, W.meaning, NULL, NULL, NULL, NULL "
+        String myQuery = "SELECT DISTINCT W.romanization, NULL, W.meaning, NULL, NULL, NULL, NULL "
                        + "FROM word W, symbols S, wordsource N "
                        + "WHERE W.wlanguage = '" + language + "' " + queryModification
                        + "ORDER BY RAND() "
