@@ -1,5 +1,7 @@
 # LanguageRegressionTests
 *********************
+https://www.youtube.com/watch?v=uwH9MVhHPKM&feature=youtu.be
+*********************
 Oracle's Connector/j version 8.0.20 is required in the buildpath of the project in order for compilation!
 It can be downloaded here: https://dev.mysql.com/downloads/connector/j/
 *********************
